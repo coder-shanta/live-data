@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket-Client</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding-bottom: 3rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    #form {
+      background: rgba(0, 0, 0, 0.15);
+      padding: 0.25rem;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      height: 3rem;
+      box-sizing: border-box;
+      backdrop-filter: blur(10px);
+    }
+
+    #input {
+      border: none;
+      padding: 0 1rem;
+      flex-grow: 1;
+      border-radius: 2rem;
+      margin: 0.25rem;
+    }
+
+    #input:focus {
+      outline: none;
+    }
+
+    #form>button {
+      background: #333;
+      border: none;
+      padding: 0 1rem;
+      margin: 0.25rem;
+      border-radius: 3px;
+      outline: none;
+      color: #fff;
+    }
+
+    #messages {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    #messages>li {
+      padding: 0.5rem 1rem;
+    }
+
+    #messages>li:nth-child(odd) {
+      background: #efefef;
+    }
+
+    #live {
+      width: 50px;
+      height: 50px;
+      background-color: #4787ed;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      color: white;
+      transition: all .5s;
+      margin-bottom: 12px;
+    }
+
+
+    .active-usr {
+      position: fixed;
+      top: 50px;
+      right: 50px;
+      display: flex;
+      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <ul id="messages"></ul>
+  <form id="form" action="">
+    <input id="input" autocomplete="off" /><button>Send</button>
+  </form>
+
+
+
+  <div class="active-usr">
+    <div id="live">
+      0
+    </div>
+
+    Active User
+  </div>
+
+
+  <script src="https://live-data-app.herokuapp.com/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io('https://live-data-app.herokuapp.com')
+
+
+    const liveUser = document.getElementById('live')
+    const messages = document.getElementById('messages')
+
+    socket.on('liveUser', userNum => {
+      liveUser.innerText = userNum
+    })
+
+    socket.on('message', msg => {
+      var item = document.createElement('li');
+      item.textContent = msg;
+      messages.appendChild(item);
+      window.scrollTo(0, document.body.scrollHeight);
+    })
+
+    // client-side
+    socket.on("connect", () => {
+      console.log('connected with server');
+      console.log(socket.id); // x8WIv7-mJelg7on_ALbx
+    });
+
+
+    socket.on("disconnect", () => {
+      console.log('Disconnected with server');
+    });
+
+
+    var form = document.getElementById('form');
+    var input = document.getElementById('input');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (input.value) {
+
+        var item = document.createElement('li');
+        item.textContent = input.value;
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+
+        socket.emit('message', input.value);
+        input.value = '';
+      }
+    });
+  </script>
+</body>
+
+</html>
